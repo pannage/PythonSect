@@ -1,6 +1,5 @@
 import random
 
-# Список вопросов
 questions = [
     {"question": "What is 2+2?", "options": ["a) 3", "b) 4", "c) 5", "d) 6"], "answer": "b"},
     {"question": "What is the capital of France?", "options": ["a) Berlin", "b) Madrid", "c) Paris", "d) Rome"], "answer": "c"},
@@ -14,13 +13,16 @@ questions = [
     {"question": "What is 9-3?", "options": ["a) 3", "b) 6", "c) 9", "d) 12"], "answer": "b"}
 ]
 
-print("Type 'Start' to begin the quiz")
-user_input = input()
+def start():
+    print("Type 'Start' to begin the quiz")
+    user_input = input()
+    if user_input.lower() == "start":
+        game_logic()
+    else:
+        print("You need to type 'Start' to begin.")
 
-if user_input.lower() == "start":
+def game_logic():
     score = 0
-
-    # Выбираем 5 случайных вопросов
     selected_questions = random.sample(questions, 5)
 
     for q in selected_questions:
@@ -36,8 +38,10 @@ if user_input.lower() == "start":
         else:
             print("Wrong!")
 
+    results(score)
+
+def results(score):
     print("\nGame over")
     print(f"Your score: {score}/5")
 
-else:
-    print("You need to type 'Start' to begin.")
+start()
