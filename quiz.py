@@ -1,144 +1,111 @@
-import random
-import sys
-
-# Список вопросов
-questions = [
-    {"question": "What is 2+2?", "options": ["a) 3", "b) 4", "c) 5", "d) 6"], "answer": "b"},
-    {"question": "What is the capital of France?", "options": ["a) Berlin", "b) Madrid", "c) Paris", "d) Rome"], "answer": "c"},
-    {"question": "What color is the sky?", "options": ["a) Blue", "b) Green", "c) Red", "d) Yellow"], "answer": "a"},
-    {"question": "What is 5*3?", "options": ["a) 15", "b) 10", "c) 20", "d) 25"], "answer": "a"},
-    {"question": "Which is a fruit?", "options": ["a) Carrot", "b) Apple", "c) Potato", "d) Onion"], "answer": "b"},
-    {"question": "What is 10/2?", "options": ["a) 2", "b) 3", "c) 5", "d) 10"], "answer": "c"},
-    {"question": "Which animal barks?", "options": ["a) Cat", "b) Dog", "c) Cow", "d) Fish"], "answer": "b"},
-    {"question": "What is the color of grass?", "options": ["a) Blue", "b) Red", "c) Green", "d) Black"], "answer": "c"},
-    {"question": "How many days in a week?", "options": ["a) 5", "b) 6", "c) 7", "d) 8"], "answer": "c"},
-    {"question": "What is 9-3?", "options": ["a) 3", "b) 6", "c) 9", "d) 12"], "answer": "b"}
-]
-
-def start():
-    # Main menu loop
-    while True:
-        print("Type 'Start' to begin, 'Admin' to add question, or 'Exit' to quit")
-        user_input = input().lower()
-
-        # Start the quiz
-        if user_input == "start":
-            game_logic()
-
-        # Enter admin mode to add a question
-        elif user_input == "admin":
-            add_question()
-
-        # Exit the program
-        elif user_input == "exit":
-            print("Goodbye!")
-            sys.exit()
-
-        # Handle unknown commands
-        else:
-            print("Unknown command")
+import random  # import module for random selection
+import sys     # import module to exit the program
+import json    # import module to work with JSON files
 
 
-def game_logic():
-    # Initialize score
-    score = 0
-
-    # Get random questions (max 5 or less if not enough questions)
-    selected_questions = get_random_questions(questions, min(5, len(questions)))
-
-    # Loop through each question
-    for q in selected_questions:
-        show_question(q)
-
-        # Get user input
-        user_answer = get_user_answer()
-
-        # Check if user wants to exit
-        if user_answer == "exit":
-            exit_program()
-
-        # Check if user wants to add a question
-        if user_answer == "admin":
-            add_question()
-            continue  # Skip current question
-
-        # Check if answer is correct
-        if check_answer(user_answer, q["answer"]):
-            score += 1
-
-    # Show final result
-    show_results(score)
+def load_questions():  # function to load questions from JSON file
+    try:  # try to open file
+        with open("questions.json", "r") as file:  # open file in read mode
+            return json.load(file)  # load JSON data and return it
+    except FileNotFoundError:  # if file does not exist
+        return []  # return empty list
 
 
-def get_random_questions(question_list, count):
-    # Return 'count' random unique questions from the list
-    return random.sample(question_list, count)
+def save_questions(questions):  # function to save questions to JSON file
+    with open("questions.json", "w") as file:  # open file in write mode
+        json.dump(questions, file, indent=4)  # write data 
+
+questions = load_questions()  # load questions into variable
 
 
-def show_question(q):
-    # Display question text
-    print("\n" + q["question"])
+def start():  # main menu function
+    while True:  # infinite loop
+        print("\nType 'Start' to begin, 'Admin' to add question, or 'Exit' to quit")  # show menu
+        user_input = input().lower()  # get input and convert to lowercase
 
-    # Display all answer options
-    for option in q["options"]:
-        print(option)
+        if user_input == "start":  # if user wants to start quiz
+            if not questions:  # check if list is empty
+                print("No questions yet! Add some in Admin mode.")  # warning message
+            else:
+                game_logic()  # start quiz
+
+        elif user_input == "admin":  # if user enters admin mode
+            add_question()  # call function to add question
+
+        elif user_input == "exit":  # if user wants to exit
+            print("Goodbye!")  # farewell message
+            sys.exit()  # terminate program
+
+        else:  # if command is unknown
+            print("Unknown command")  # error message
 
 
-def get_user_answer():
-    # Ask user for input and convert it to lowercase
-    return input("Your answer (a/b/c/d) or 'Exit'/'Admin': ").lower()
+def game_logic():  # main quiz logic
+    score = 0  # initialize score
+
+    # select random questions (max 5 or less if not enough)
+    selected_questions = random.sample(questions, min(5, len(questions)))
+
+    for q in selected_questions:  # loop through selected questions
+        show_question(q)  # display question
+
+        user_answer = get_user_answer()  # get answer from user
+
+        if check_answer(user_answer, q["answer"]):  # check if correct
+            score += 1  # increase score
+
+    show_results(score)  # display final score
 
 
-def check_answer(user_answer, correct_answer):
-    # Compare user answer with correct answer
-    if user_answer == correct_answer:
-        print("Correct!")
-        return True
+def show_question(q):  # function to display a question
+    print("\n" + q["question"])  # print question text
+
+    for option in q["options"]:  # loop through options
+        print(option)  # print each option
+
+
+def get_user_answer():  # function to get user input
+    return input("Your answer (a/b/c/d): ").lower()  # return lowercase input
+
+
+def check_answer(user_answer, correct_answer):  # function to check answer
+    if user_answer == correct_answer:  # compare answers
+        print("Correct!")  # correct message
+        return True  # return True
     else:
-        print("Wrong!")
-        return False
+        print("Wrong!")  # wrong message
+        return False  # return False
 
 
-def show_results(score):
-    # Display final results
-    print("\nGame over")
-    print(f"Your score: {score}/5")
+def show_results(score):  # function to show results
+    print("\nGame over")  # end message
+    print(f"Your score: {score}/5")  # print score
 
 
-def add_question():
-    # Admin mode: add a new question
-    print("\n--- ADD NEW QUESTION ---")
+def add_question():  # function to add new question
+    print("\n--- ADD NEW QUESTION ---")  # header
 
-    # Get question text
-    question_text = input("Enter question: ")
+    question_text = input("Enter question: ")  # get question text
 
-    # Get 4 answer options
-    options = []
-    for letter in ["a", "b", "c", "d"]:
-        option = input(f"Option {letter}: ")
-        options.append(f"{letter}) {option}")
+    options = []  # create empty list for options
 
-    # Get correct answer
-    correct = input("Correct answer (a/b/c/d): ").lower()
+    for letter in ["a", "b", "c", "d"]:  # loop through option labels
+        option = input(f"Option {letter}: ")  # get option text
+        options.append(f"{letter}) {option}")  # add formatted option to list
 
-    # Create new question dictionary
-    new_question = {
+    correct = input("Correct answer (a/b/c/d): ").lower()  # get correct answer
+
+    new_question = {  # create dictionary for new question
         "question": question_text,
         "options": options,
         "answer": correct
     }
 
-    # Add new question to the list
-    questions.append(new_question)
+    questions.append(new_question)  # add new question to list
 
-    print("Question added successfully!")
+    save_questions(questions)  # save updated list to JSON file
 
-
-def exit_program():
-    # Exit the program safely
-    print("Exiting...")
-    sys.exit()
+    print("Question saved!")  # confirmation message
 
 
-# Start the program
-start()
+start()  # start the program
