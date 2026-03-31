@@ -1,23 +1,86 @@
 import random  # import module for random selection
 import sys     # import module to exit the program
 import json    # import module to work with JSON files
+import sqlite3 # import module to work DB
+
+# ---------------- DATABASE SETUP ----------------
+
+def init_db():  # function to initialize database
+    conn = sqlite3.connect("quiz.db")  # connect to database (creates file if not exists)
+    cursor = conn.cursor()  # create cursor to execute SQL commands
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS questions (  -- create table if it doesn't exist
+            id INTEGER PRIMARY KEY AUTOINCREMENT,  -- unique ID for each question
+            question TEXT,                         -- question text
+            option_a TEXT,                         -- option A
+            option_b TEXT,                         -- option B
+            option_c TEXT,                         -- option C
+            option_d TEXT,                         -- option D
+            correct TEXT                           -- correct answer (a/b/c/d)
+        )
+    """)
+
+    conn.commit()  # save changes
+    conn.close()   # close connection
 
 
-def load_questions():  # function to load questions from JSON file
-    try:  # try to open file
-        with open("questions.json", "r") as file:  # open file in read mode
-            return json.load(file)  # load JSON data and return it
-    except FileNotFoundError:  # if file does not exist
-        return []  # return empty list
+# ---------------- LOAD QUESTIONS ----------------
+
+def load_questions():  # function to load questions from database
+    conn = sqlite3.connect("quiz.db")  # connect to database
+    cursor = conn.cursor()  # create cursor
+
+    cursor.execute("SELECT * FROM questions")  # get all questions
+    rows = cursor.fetchall()  # fetch all rows
+
+    conn.close()  # close connection
+
+    questions = []  # create empty list
+
+    for row in rows:  # iterate through database rows
+        questions.append({  # convert each row to dictionary
+            "question": row[1],  # question text
+            "options": [  # list of options
+                f"a) {row[2]}",  # option A
+                f"b) {row[3]}",  # option B
+                f"c) {row[4]}",  # option C
+                f"d) {row[5]}"   # option D
+            ],
+            "answer": row[6]  # correct answer
+        })
+
+    return questions  # return list of questions
+
+# ---------------- SAVE QUESTION ----------------
+
+def save_question_to_db(q):  # function to save one question to database
+    conn = sqlite3.connect("quiz.db")  # connect to database
+    cursor = conn.cursor()  # create cursor
+
+    cursor.execute("""
+        INSERT INTO questions (question, option_a, option_b, option_c, option_d, correct)
+        VALUES (?, ?, ?, ?, ?, ?)  -- insert new question
+    """, (
+        q["question"],        # question text
+        q["options"][0][3:],  # remove 'a) ' from option A
+        q["options"][1][3:],  # remove 'b) '
+        q["options"][2][3:],  # remove 'c) '
+        q["options"][3][3:],  # remove 'd) '
+        q["answer"]           # correct answer
+    ))
+
+    conn.commit()  # save changes
+    conn.close()   # close connection
 
 
-def save_questions(questions):  # function to save questions to JSON file
-    with open("questions.json", "w") as file:  # open file in write mode
-        json.dump(questions, file, indent=4)  # write data 
+# initialize database
+init_db()  # ensure DB and table exist
 
-questions = load_questions()  # load questions into variable
+# load questions into variable
+questions = load_questions()  # load all questions from DB
 
-
+# ---------------- MAIN MENU ----------------
 def start():  # main menu function
     while True:  # infinite loop
         print("\nType 'Start' to begin, 'Admin' to add question, or 'Exit' to quit")  # show menu
@@ -39,7 +102,6 @@ def start():  # main menu function
         else:  # if command is unknown
             print("Unknown command")  # error message
 
-
 def game_logic():  # main quiz logic
     score = 0  # initialize score
 
@@ -54,8 +116,10 @@ def game_logic():  # main quiz logic
         if check_answer(user_answer, q["answer"]):  # check if correct
             score += 1  # increase score
 
-    show_results(score)  # display final score
+    show_results(score, len(selected_questions))  # display final score
 
+
+# ---------------- DISPLAY QUESTION ----------------
 
 def show_question(q):  # function to display a question
     print("\n" + q["question"])  # print question text
@@ -64,9 +128,13 @@ def show_question(q):  # function to display a question
         print(option)  # print each option
 
 
+# ---------------- USER INPUT ----------------
+
 def get_user_answer():  # function to get user input
     return input("Your answer (a/b/c/d): ").lower()  # return lowercase input
 
+
+# ---------------- CHECK ANSWER ----------------
 
 def check_answer(user_answer, correct_answer):  # function to check answer
     if user_answer == correct_answer:  # compare answers
@@ -77,12 +145,18 @@ def check_answer(user_answer, correct_answer):  # function to check answer
         return False  # return False
 
 
-def show_results(score):  # function to show results
-    print("\nGame over")  # end message
-    print(f"Your score: {score}/5")  # print score
+# ---------------- RESULTS ----------------
 
+def show_results(score, questions_count):  # function to show results
+    print("\nGame over")  # end message
+    print(f"Your score: {score}/{questions_count}")  # print score
+
+
+# ---------------- ADD QUESTION ----------------
 
 def add_question():  # function to add new question
+    global questions  # use global variable
+
     print("\n--- ADD NEW QUESTION ---")  # header
 
     question_text = input("Enter question: ")  # get question text
@@ -91,7 +165,7 @@ def add_question():  # function to add new question
 
     for letter in ["a", "b", "c", "d"]:  # loop through option labels
         option = input(f"Option {letter}: ")  # get option text
-        options.append(f"{letter}) {option}")  # add formatted option to list
+        options.append(f"{letter}) {option}")  # format and add to list
 
     correct = input("Correct answer (a/b/c/d): ").lower()  # get correct answer
 
@@ -101,11 +175,13 @@ def add_question():  # function to add new question
         "answer": correct
     }
 
-    questions.append(new_question)  # add new question to list
+    save_question_to_db(new_question)  # save question to database
 
-    save_questions(questions)  # save updated list to JSON file
+    questions = load_questions()  # reload questions from DB
 
     print("Question saved!")  # confirmation message
 
+
+# ---------------- START PROGRAM ----------------
 
 start()  # start the program
