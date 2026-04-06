@@ -83,7 +83,7 @@ questions = load_questions()  # load all questions from DB
 # ---------------- MAIN MENU ----------------
 def start():  # main menu function
     while True:  # infinite loop
-        print("\nType 'Start' to begin, 'Admin' to add question, or 'Exit' to quit")  # show menu
+        print("\nType 'Start' to begin, 'Admin' to add question, or 'Exit' to quit, 'Import'/'Export'")  # show menu
         user_input = input().lower()  # get input and convert to lowercase
 
         if user_input == "start":  # if user wants to start quiz
@@ -98,6 +98,12 @@ def start():  # main menu function
         elif user_input == "exit":  # if user wants to exit
             print("Goodbye!")  # farewell message
             sys.exit()  # terminate program
+
+        elif user_input == "export":
+            export_to_json()
+
+        elif user_input == "import":
+            import_from_json()
 
         else:  # if command is unknown
             print("Unknown command")  # error message
@@ -181,6 +187,70 @@ def add_question():  # function to add new question
 
     print("Question saved!")  # confirmation message
 
+# new function for export logic
+def export_to_json():
+    # user input filename
+    filename = input("Enter file name (without .json): ")
+
+    # add .json
+    filename = filename + ".json"
+
+    # connect DB
+    conn = sqlite3.connect("quiz.db")
+    cursor = conn.cursor()
+
+    # get all questions
+    cursor.execute("SELECT * FROM questions")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    data = []
+
+    # transform the data into a JSON 
+    for row in rows:
+        question_dict = {
+            "question": row[1],
+            "options": [
+                f"a) {row[2]}",
+                f"b) {row[3]}",
+                f"c) {row[4]}",
+                f"d) {row[5]}"
+            ],
+            "answer": row[6]
+        }
+
+        data.append(question_dict)
+
+    # save to file
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+    print(f"Exported {len(data)} questions to {filename}")
+
+
+# new function for import logic
+def import_from_json():
+    global questions
+
+    filename = input("Enter file name (with .json): ")
+
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        for q in data:
+            save_question_to_db(q)
+
+        questions = load_questions()
+
+        print(f"Imported {len(data)} questions from {filename}")
+
+    except FileNotFoundError:
+        print("File not found!")
+
+    except json.JSONDecodeError:
+        print("Invalid JSON file!")
 
 # ---------------- START PROGRAM ----------------
 
