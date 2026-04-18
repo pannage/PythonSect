@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Page title shown in browser tab -->
+    <title>Quiz Admin Panel</title>
+
+    <!-- Character encoding for proper text rendering -->
+    <meta charset="UTF-8">
+</head>
+
+<body>
+
+    <!-- Main heading of the page -->
+    <h1>Quiz Questions Manager</h1>
+
+    <!-- Section that will display list of questions -->
+    <h2>All Questions</h2>
+
+    <!-- Empty list where questions will be inserted dynamically by JavaScript -->
+    <ul id="questions-list"></ul>
+
+    <!-- Section for adding new question -->
+    <h2>Add New Question</h2>
+
+    <!-- Input field for question text -->
+    <input id="question" placeholder="Enter question text">
+    <br><br>
+
+    <!-- Input fields for answer options -->
+    <input id="a" placeholder="Option A">
+    <br>
+    <input id="b" placeholder="Option B">
+    <br>
+    <input id="c" placeholder="Option C">
+    <br>
+    <input id="d" placeholder="Option D">
+    <br><br>
+
+    <!-- Input for correct answer (a/b/c/d) -->
+    <input id="answer" placeholder="Correct answer (a/b/c/d)">
+    <br><br>
+
+    <!-- Button that triggers adding a question -->
+    <button onclick="addQuestion()">Add Question</button>
+
+    <!-- ===================== JAVASCRIPT SECTION ===================== -->
+    <script>
+        // Load all questions from server and display them
+        async function loadQuestions() {
+            // Send GET request to Flask backend
+            const response = await fetch("/questions");
+
+            // Convert response to JSON format
+            const data = await response.json();
+
+            // Get HTML element where questions will be shown
+            const list = document.getElementById("questions-list");
+
+            // Clear previous content before rendering new data
+            list.innerHTML = "";
+
+            // Loop through all questions received from backend
+            data.forEach(question => {
+
+                // Create new list item
+                const li = document.createElement("li");
+
+                // Fill list item with question content
+                li.innerHTML = `
+                    <b>Question:</b> ${question.question} <br>
+
+                    <!-- Display all answer options -->
+                    ${question.options.join("<br>")} <br>
+
+                    <!-- Show correct answer -->
+                    <b>Answer:</b> ${question.answer} <br><br>
+
+                    <!-- Delete button calls delete function with question ID -->
+                    <button onclick="deleteQuestion(${question.id})">
+                        Delete
+                    </button>
+
+                    <hr>
+                `;
+
+                // Add list item to page
+                list.appendChild(li);
+            });
+        }
+
+
+        // Send new question to server
+        async function addQuestion() {
+
+            // Create object from input values
+            const newQuestion = {
+                question: document.getElementById("question").value,
+                options: [
+                    document.getElementById("a").value,
+                    document.getElementById("b").value,
+                    document.getElementById("c").value,
+                    document.getElementById("d").value
+                ],
+                answer: document.getElementById("answer").value
+            };
+
+            // Send POST request to backend
+            await fetch("/questions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(newQuestion)
+            });
+
+            // Reload questions after adding new one
+            loadQuestions();
+        }
+
+
+        // Delete question by ID
+        async function deleteQuestion(id) {
+
+            // Send DELETE request to backend
+            await fetch(`/questions/${id}`, {
+                method: "DELETE"
+            });
+
+            // Reload list after deletion
+            loadQuestions();
+        }
+
+
+        // Load questions automatically when page opens
+        loadQuestions();
+    </script>
+
+</body>
+
+</html>
